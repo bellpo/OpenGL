@@ -1,8 +1,10 @@
 #include <windows.h>
+#include <gl/GL.h>
+#include <gl/GLU.h>
 
+#pragma comment(lib,"opengl32.lib")
 
 LRESULT CALLBACK RenderWindowProc(HWND hwnd, UINT  msg, WPARAM wParam, LPARAM lParam) {
-
 	switch (msg)
 	{
 	case WM_QUIT://收到退出的消息
@@ -13,8 +15,6 @@ LRESULT CALLBACK RenderWindowProc(HWND hwnd, UINT  msg, WPARAM wParam, LPARAM lP
 	}
 
 }
-
-
 
 INT WINAPI WinMain(_In_ HINSTANCE hInstance,_In_opt_ HINSTANCE hPrevInstance,_In_ LPSTR lpCmdLine,_In_ int nShowCmd)
 {
@@ -34,17 +34,29 @@ INT WINAPI WinMain(_In_ HINSTANCE hInstance,_In_opt_ HINSTANCE hPrevInstance,_In
 	wndClass.style = CS_HREDRAW | CS_VREDRAW;//方式  水平重绘和数值重绘 CS是CLASS_STYLE
 
 	ATOM atom = RegisterClassEx(&wndClass);
-
 	HWND hwnd = CreateWindowEx(NULL,L"OpenGLWindow",L"OpenGL Render Window",WS_OVERLAPPEDWINDOW,100,100,800,600,NULL,NULL,hInstance,NULL);
 
-	ShowWindow(hwnd,SW_SHOW);//#define SW_HIDE             0
-	//#define SW_SHOWNORMAL       1
-	//#define SW_NORMAL           1
-	//#define SW_SHOWMINIMIZED    2
-	//#define SW_SHOWMAXIMIZED    3
-	//#define SW_MAXIMIZE         3
-	//#define SW_SHOWNOACTIVATE   4
-	//#define SW_SHOW             5
+	
+	//opengl的渲染
+	HDC dc = GetDC(hwnd);//设备环境
+	PIXELFORMATDESCRIPTOR pfd;//创建一个设备颜色表
+	memset(&pfd,0,sizeof(PIXELFORMATDESCRIPTOR));//清空pfd
+	pfd.nVersion = 1;
+	pfd.dwFlags = PFD_DOUBLEBUFFER|PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_TYPE_RGBA;//必选的
+	pfd.iLayerType = PFD_MAIN_PLANE;
+	pfd.iPixelType = PFD_TYPE_RGBA;
+	pfd.cColorBits = 32;
+	pfd.cDepthBits = 24;
+	pfd.cStencilBits = 8;
+	int pixelFormatID = ChoosePixelFormat(dc,&pfd);//选择一个颜色格式，如果不符合条件，创建不出这个 ID无效
+	SetPixelFormat(dc,pixelFormatID,&pfd);
+
+	HGLRC rc = wglCreateContext(dc);//OpenGL渲染设备
+	wglMakeCurrent(dc,rc);//设置成为当前的渲染设 备
+	glClearColor(41.0/255.0f,41.0/255.0f,121.0/255.0f,1.0f);
+	
+
+	ShowWindow(hwnd,SW_SHOW);   //#define SW_HIDE 0                  //#define SW_SHOW 5
 	UpdateWindow(hwnd);
 	MSG msg;
 	while (true)
@@ -57,11 +69,9 @@ INT WINAPI WinMain(_In_ HINSTANCE hInstance,_In_opt_ HINSTANCE hPrevInstance,_In
 			}
 			TranslateMessage(&msg);//转换成应用程序认识的消息格式
 			DispatchMessage(&msg);//派发出去，告诉窗口过程函数
-
 		}
-
+		glClear(GL_COLOR_BUFFER_BIT);//绘制出来
+		SwapBuffers(dc);//前后缓冲区交换
 	}
-
 	return 0;
-
 }
